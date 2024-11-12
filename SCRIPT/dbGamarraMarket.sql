@@ -6,121 +6,92 @@ DEFAULT CHARACTER SET utf8;
 /*PONER EN USO LA BASE DE DATOS CREADA*/
 USE dbGamarraMarket;
 
-/*CREACIÓN DE TABLA CLIENTE*/
-CREATE TABLE CLIENTE(
-id int,
-tipo_documento char(3),
-numero_documento char(9),
-nombres varchar(60),  
-apellidos varchar(90),  
-email varchar(80),  
-celular char(9),  
-fecha_nacimiento date,  
-activo bool,  
-CONSTRAINT cliente_pk PRIMARY KEY (id)
+CREATE TABLE CLIENTE (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tipo_documento CHAR(3) NOT NULL,
+    numero_documento CHAR(15) NOT NULL UNIQUE,
+    nombres VARCHAR(60) NOT NULL,
+    apellidos VARCHAR(90) NOT NULL,
+    email VARCHAR(80),
+    celular CHAR(9),
+    fecha_nacimiento DATE,
+    activo BOOLEAN DEFAULT TRUE
 );
-SHOW COLUMNS IN CLIENTE;
-ALTER TABLE CLIENTE
-ADD COLUMN estado_civil char(1);
-ALTER TABLE CLIENTE
-DROP COLUMN fecha_nacimiento;
-ALTER TABLE CLIENTE
-DROP COLUMN estado_civil;
-ALTER TABLE CLIENTE
-ADD COLUMN fecha_nacimiento date;
 
-/*CREACIÓN DE TABLA VENTA*/
-CREATE TABLE VENTA (  
-    id int,  
-    fecha_hora timestamp,  
-    activo bool,  
-    cliente_id int,  
-    vendedor_id int, 
-    CONSTRAINT venta_pk PRIMARY KEY (id)
+CREATE TABLE VENDEDOR (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tipo_documento CHAR(3) NOT NULL,
+    numero_documento CHAR(15) NOT NULL UNIQUE,
+    nombres VARCHAR(60) NOT NULL,
+    apellidos VARCHAR(90) NOT NULL,
+    salario DECIMAL(8,2) NOT NULL,
+    celular CHAR(9),
+    email VARCHAR(80),
+    activo BOOLEAN DEFAULT TRUE
 );
-SHOW COLUMNS IN VENTA;
 
-/*CREACIÓN DE TABLA VENDEDOR*/
-CREATE TABLE VENDEDOR (  
-    id int,  
-    tipo_documento char(3),  
-    numero_documento char(15),  
-    nombres varchar(60),  
-    apellidos varchar(90),  
-    salario decimal(8, 2),  
-    celular char(9),  
-    email varchar(80),  
-    activo bool,  
-    CONSTRAINT vendedor_pk PRIMARY KEY (id)
+CREATE TABLE PRENDA (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    descripcion VARCHAR(90) NOT NULL,
+    marca VARCHAR(60) NOT NULL,
+    cantidad INT NOT NULL,
+    talla VARCHAR(10) NOT NULL,
+    precio DECIMAL(8,2) NOT NULL,
+    activo BOOLEAN DEFAULT TRUE
 );
-SHOW COLUMNS IN VENDEDOR;
 
-/*CREACIÓN DE TABLA PRENDA*/
-CREATE TABLE PRENDA (  
-    id int,  
-    descripcion varchar(90),  
-    marca varchar(60),  
-    cantidad int,  
-    talla varchar(10),  
-    precio decimal(8, 2),  
-    activo bool,
-    CONSTRAINT prenda_pk PRIMARY KEY (id)
+CREATE TABLE VENTA (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activo BOOLEAN DEFAULT TRUE,
+    cliente_id INT NOT NULL,
+    vendedor_id INT NOT NULL,
+    FOREIGN KEY (cliente_id) REFERENCES CLIENTE(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (vendedor_id) REFERENCES VENDEDOR(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
-SHOW COLUMNS IN PRENDA;
 
-/*CREACIÓN DE TABLA VENTA_DETALLE*/
-CREATE TABLE VENTA_DETALLE (  
-    id int,  
-    cantidad int,  
-    venta_id int,  
-    prenda_id int,  
-    CONSTRAINT venta_detalle_pk PRIMARY KEY (id)
+CREATE TABLE VENTA_DETALLE (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cantidad INT NOT NULL,
+    venta_id INT NOT NULL,
+    prenda_id INT NOT NULL,
+    FOREIGN KEY (venta_id) REFERENCES VENTA(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (prenda_id) REFERENCES PRENDA(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
-SHOW COLUMNS IN VENTA_DETALLE;
 
-/*LISTAR TABLAS*/
+
+ALTER TABLE VENTA
+ADD CONSTRAINT fk_cliente_venta
+FOREIGN KEY (cliente_id) REFERENCES CLIENTE(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE VENTA
+ADD CONSTRAINT fk_vendedor_venta
+FOREIGN KEY (vendedor_id) REFERENCES VENDEDOR(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE VENTA_DETALLE
+ADD CONSTRAINT fk_venta_venta_detalle
+FOREIGN KEY (venta_id) REFERENCES VENTA(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE VENTA_DETALLE
+ADD CONSTRAINT fk_prenda_venta_detalle
+FOREIGN KEY (prenda_id) REFERENCES PRENDA(id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+SELECT 
+    kcu.CONSTRAINT_NAME AS 'Nombre de Relación',
+    kcu.REFERENCED_TABLE_NAME AS 'Tabla Padre',
+    kcu.REFERENCED_COLUMN_NAME AS 'Primary Key',
+    kcu.TABLE_NAME AS 'Tabla Hija',
+    kcu.COLUMN_NAME AS 'Foreign Key'
+FROM 
+    information_schema.KEY_COLUMN_USAGE AS kcu
+WHERE 
+    kcu.TABLE_SCHEMA = 'dbGamarraMarket' 
+    AND kcu.REFERENCED_TABLE_NAME IS NOT NULL;
+    
 SHOW TABLES;
 
-/*CREACIÓN DE LAS RELACIONES*/
-#RELACION VENTA_CLIENTE
-ALTER TABLE VENTA  
-    ADD CONSTRAINT VENTA_CLIENTE FOREIGN KEY (cliente_id)  
-    REFERENCES CLIENTE (id)  
-    ON UPDATE CASCADE  
-    ON DELETE CASCADE  
-;
-
-#RELACION VENTADETALLE_VENTA
-ALTER TABLE VENTA_DETALLE  
-    ADD CONSTRAINT VENTA_DETALLE_VENTA FOREIGN KEY (venta_id)  
-    REFERENCES VENTA (id)  
-    ON UPDATE CASCADE  
-    ON DELETE CASCADE  
-;
-
-#RELACION VENTA_VENDEDOR
-ALTER TABLE VENTA  
-    ADD CONSTRAINT VENTA_VENDEDOR FOREIGN KEY (vendedor_id)  
-    REFERENCES VENDEDOR (id)  
-    ON UPDATE CASCADE  
-    ON DELETE CASCADE  
-;
-
-#RELACION VENTADETALLE_PRENDA
-ALTER TABLE VENTA_DETALLE  
-    ADD CONSTRAINT VENTA_DETALLE_PRENDA FOREIGN KEY (prenda_id)  
-    REFERENCES PRENDA (id)  
-    ON UPDATE CASCADE  
-    ON DELETE CASCADE  
-;
-
-/*LISTAR RELACIONES*/
-SELECT  
-    i.constraint_name, k.table_name, k.column_name,  
-    k.referenced_table_name, k.referenced_column_name  
-FROM  
-    information_schema.TABLE_CONSTRAINTS i  
-LEFT JOIN information_schema.KEY_COLUMN_USAGE k  
-ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME  
-WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY'  
-AND i.TABLE_SCHEMA = DATABASE(); 
+DESCRIBE CLIENTE;
+DESCRIBE VENDEDOR;
+DESCRIBE PRENDA;
+DESCRIBE VENTA;
